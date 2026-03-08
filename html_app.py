@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from reportlab.pdfgen import canvas
 from io import BytesIO
+import os
 
 st.set_page_config(page_title="Predictive Pulse AI", layout="wide")
 
@@ -15,17 +16,9 @@ background: linear-gradient(120deg,#f5f7fa,#c3cfe2);
 }
 
 .title{
-font-size:45px;
+font-size:50px;
 font-weight:bold;
 text-align:center;
-color:#0d47a1;
-}
-
-.card{
-background:white;
-padding:30px;
-border-radius:15px;
-box-shadow:0px 5px 15px rgba(0,0,0,0.2);
 }
 
 label{
@@ -44,40 +37,83 @@ padding:10px 20px;
 </style>
 """, unsafe_allow_html=True)
 
+# ---------- CREATE USER DATABASE ----------
+if not os.path.exists("users.csv"):
+    df = pd.DataFrame(columns=["name","email"])
+    df.to_csv("users.csv",index=False)
+
 # ---------- SESSION ----------
 if "login" not in st.session_state:
     st.session_state.login=False
 
-if "report" not in st.session_state:
-    st.session_state.report=None
+# ---------- MENU ----------
+menu = ["Login","Register"]
+choice = st.sidebar.selectbox("Menu",menu)
 
+# ---------- REGISTER ----------
+if choice == "Register":
 
-# ---------- LOGIN PAGE ----------
-if not st.session_state.login:
+    st.markdown("""
+    <div class="title">
+    ❤️ <span style="color:blue">Predictive</span>
+    <span style="color:red">Pulse</span>
+    <span style="color:green">AI</span>
+    </div>
+    """,unsafe_allow_html=True)
 
-    st.markdown('<div class="title">❤️ Predictive Pulse AI</div>', unsafe_allow_html=True)
+    st.subheader("Register")
 
-    st.image("https://cdn-icons-png.flaticon.com/512/2966/2966483.png", width=150)
+    name = st.text_input("Enter Name")
+    email = st.text_input("Enter Gmail")
+
+    if st.button("Register"):
+
+        users = pd.read_csv("users.csv")
+
+        if email in users["email"].values:
+            st.warning("User already registered")
+
+        else:
+            new_user = pd.DataFrame([[name,email]],columns=["name","email"])
+            users = pd.concat([users,new_user],ignore_index=True)
+            users.to_csv("users.csv",index=False)
+
+            st.success("Registration successful. Please login.")
+
+# ---------- LOGIN ----------
+if choice == "Login":
+
+    st.markdown("""
+    <div class="title">
+    ❤️ <span style="color:blue">Predictive</span>
+    <span style="color:red">Pulse</span>
+    <span style="color:green">AI</span>
+    </div>
+    """,unsafe_allow_html=True)
+
+    st.image("https://cdn-icons-png.flaticon.com/512/2966/2966483.png",width=150)
 
     st.subheader("Login")
 
-    name = st.text_input("Enter Your Name")
+    name = st.text_input("Enter Name")
     email = st.text_input("Enter Gmail")
 
     if st.button("Login"):
 
-        if name != "":
+        users = pd.read_csv("users.csv")
+
+        if ((users["name"] == name) & (users["email"] == email)).any():
+
             st.session_state.login=True
             st.session_state.name=name
             st.session_state.email=email
-            st.rerun()
+            st.success("Login successful")
 
         else:
-            st.warning("Please enter name")
-
+            st.error("User not registered. Please register first.")
 
 # ---------- MAIN APP ----------
-else:
+if st.session_state.login:
 
     st.sidebar.title("Navigation")
 
@@ -85,6 +121,9 @@ else:
         "Menu",
         ["Health Form","Dashboard","Download Report"]
     )
+
+    if "report" not in st.session_state:
+        st.session_state.report=None
 
     # ---------- HEALTH FORM ----------
     if page == "Health Form":
@@ -102,7 +141,6 @@ else:
 
             bmi = weight / ((height/100)**2)
 
-            # simple ML-like rule
             risk = "Normal"
 
             if systolic > 140 or diastolic > 90:
@@ -124,17 +162,15 @@ else:
                 st.write("### Recommendations")
 
                 st.write("""
-                • Reduce salt intake  
-                • Exercise regularly  
-                • Maintain healthy weight  
-                • Monitor blood pressure  
-                • Reduce stress  
-                """)
+• Reduce salt intake  
+• Exercise regularly  
+• Maintain healthy weight  
+• Monitor blood pressure  
+• Reduce stress  
+""")
 
             else:
-
                 st.success("Blood Pressure Normal")
-
 
     # ---------- DASHBOARD ----------
     if page == "Dashboard":
@@ -168,7 +204,6 @@ else:
             st.write("### Health Summary")
 
             st.write(r)
-
 
     # ---------- DOWNLOAD REPORT ----------
     if page == "Download Report":
